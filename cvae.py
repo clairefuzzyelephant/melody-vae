@@ -16,18 +16,28 @@ import os
 def get_piano_rolls():
     pr = []
 
-    for file in glob.glob("type0/*.mid"):
+    for file in glob.glob("test_lakh_cleansed/*.mid"):
         pm = pretty_midi.PrettyMIDI(file) #takes a midi file and converts to pretty_midi
         instr = pm.instruments #splits into list of instruments
         for instrument in instr:
             name = pretty_midi.program_to_instrument_name(instrument.program)
             #print(name)
-            if name == "Acoustic Grand Piano": #only take the piano track
+            if name == "Acoustic Grand Piano" or name == "Piano" or name == "Bright Acoustic Piano": #only take the piano track
+                print(name)
                 piano_roll = instrument.get_piano_roll() #get the piano roll, which is a np.ndarray
+                print(len(piano_roll), len(piano_roll[0]))
                 pr.append(piano_roll)
 
-
+        print(len(pr))
     return pr #list of piano rolls (np.ndarray matrices)
+    #shape: 128 (pitches), timelength 100/s
+
+
+def prepare_sequences(pr):
+
+
+
+    return (net_in, net_out)
 
 
 def sampling(args):
@@ -46,11 +56,7 @@ def sampling(args):
     return z_mean + K.exp(0.5 * z_log_var) * epsilon
 
 
-def prepare_sequences(pr):
 
-    #need to implement this
-
-    return (net_in, net_out)
 
 
 
@@ -59,7 +65,7 @@ def train():
     net_in, net_out = prepare_sequences(pr)
 
     #building models
-    (x_train, y_train), (x_test, y_test) = #?????????
+    (x_train, y_train), (x_test, y_test) = (net_in, net_in), (net_out, net_out)#?????????
     #xtrain and ytrain are the same thing, xtest and ytest are the same thing
     #different "cuts" of the sequences, train and test should overlap by a bit
 
@@ -72,7 +78,7 @@ def train():
     x_test = x_test.astype('float32') / 255
 
     # network parameters
-    input_shape = #change
+    input_shape = 5#change
     batch_size = 128
     kernel_size = 3
     filters = 16
@@ -174,4 +180,4 @@ def train():
 
 
 if __name__ == "__main__":
-    train()
+    get_piano_rolls()
