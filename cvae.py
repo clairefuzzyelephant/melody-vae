@@ -1,6 +1,7 @@
 import pretty_midi
 import glob
 import pickle
+import pypianoroll
 
 from keras.layers import Lambda, Input, Dense
 from keras.models import Model
@@ -12,25 +13,106 @@ import numpy as np
 import matplotlib.pyplot as plt
 import argparse
 import os
+import sys
+import librosa
+
+NPITCH = 128
+# output_t_size = 500 = 5 * 100 bc. 100 is default freq pretty_midi
+def export_piano_rolls(roll, filename, output_t_size=500):
+    print("exporting ", filename)
+
+    pitch, ntime = piano_rolls[0].shape
+    if pitch != NPITCH:
+        print("Mismatch number of pitches")
+
+    for st in range(0, ntime, output_t_size):
+        roll_img = roll[:,st:st+output_t_size]
+        if st + output_t_size > ntime:
+            break
+        plt.imsave('rolls_imgs/{}-st-{}.png'.format(filename, st), roll_img, cmap=cm.gray)
+    print("Exported the song {}".format(filename))
+
+def get_filename(filepath):
+    base = os.path.basename(filepath)
+    return os.path.splitext(base)[0]
+
 
 def get_piano_rolls():
     pr = []
-
-    for file in glob.glob("test_lakh_cleansed/*.mid"):
+    done = False
+    for file in glob.glob("type0/*.midi"):
         pm = pretty_midi.PrettyMIDI(file) #takes a midi file and converts to pretty_midi
         instr = pm.instruments #splits into list of instruments
         for instrument in instr:
             name = pretty_midi.program_to_instrument_name(instrument.program)
-            #print(name)
-            if name == "Acoustic Grand Piano" or name == "Piano" or name == "Bright Acoustic Piano": #only take the piano track
-                print(name)
+            if name == "Acoustic Grand Piano": #only take the piano track
                 piano_roll = instrument.get_piano_roll() #get the piano roll, which is a np.ndarray
-                print(len(piano_roll), len(piano_roll[0]))
+                #print(piano_roll.check_pianoroll())
                 pr.append(piano_roll)
-
-        print(len(pr))
+                roll = (piano_roll[:,:]>0).astype(int)
+                filename = get_filename(file)
+                pianoroll_to_midi(roll, filename)
+                #export_piano_rolls(roll, filename)
+                if len(pr) == 1:
+                    done = True
+                    break
+        if done:
+            break
     return pr #list of piano rolls (np.ndarray matrices)
-    #shape: 128 (pitches), timelength 100/s
+
+
+def pianoroll_to_midi(piano_roll, filename, fs=100, program=0): #https://github.com/craffel/pretty-midi/blob/master/examples/reverse_pianoroll.py
+    '''Convert a Piano Roll array into a PrettyMidi object
+     with a single instrument.
+    Parameters
+    ----------
+    piano_roll : np.ndarray, shape=(128,frames), dtype=int
+        Piano roll of one instrument
+    fs : int
+        Sampling frequency of the columns, i.e. each column is spaced apart
+        by ``1./fs`` seconds.
+    program : int
+        The program number of the instrument.
+    Returns
+    -------
+    midi_object : pretty_midi.PrettyMIDI
+        A pretty_midi.PrettyMIDI class instance describing
+        the piano roll.
+    '''
+    notes, frames = piano_roll.shape
+    pm = pretty_midi.PrettyMIDI()
+    instrument = pretty_midi.Instrument(program=program)
+
+    # pad 1 column of zeros so we can acknowledge inital and ending events
+    piano_roll = np.pad(piano_roll, [(0, 0), (1, 1)], 'constant')
+
+    # use changes in velocities to find note on / note off events
+    velocity_changes = np.nonzero(np.diff(piano_roll).T)
+
+    # keep track on velocities and note on times
+    prev_velocities = np.zeros(notes, dtype=int)
+    note_on_time = np.zeros(notes)
+
+    for time, note in zip(*velocity_changes):
+        # use time + 1 because of padding above
+        velocity = piano_roll[note, time + 1]
+        time = time / fs
+        if velocity > 0:
+            if prev_velocities[note] == 0:
+                note_on_time[note] = time
+                prev_velocities[note] = velocity
+        else:
+            pm_note = pretty_midi.Note(
+                velocity=prev_velocities[note],
+                pitch=note,
+                start=note_on_time[note],
+                end=time)
+            instrument.notes.append(pm_note)
+            prev_velocities[note] = 0
+    pm.instruments.append(instrument)
+    #print(pm)
+    pm.write("reconstructed/re-{}.midi".format(filename))
+    return pm
 
 
 def prepare_sequences(pr):
