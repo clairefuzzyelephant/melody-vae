@@ -10,3 +10,8 @@ changing from using vae -> cvae, vae with cnn
 - Example from [pytorch-vae Github](https://github.com/sksq96/pytorch-vae) 
 ### Install Dependencies
 - `python3 -m pip install imageio, torchsummary`
+
+
+Need libsndfile and audiolab for playback.
+- `brew install libsndfile`
+- `pip install scikits.audiolab`
