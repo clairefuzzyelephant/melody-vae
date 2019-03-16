@@ -9,6 +9,8 @@ from keras.losses import mse, binary_crossentropy
 from keras.utils import plot_model
 from keras import backend as K
 
+from mido import MidiFile, MidiTrack, Message as MidiMessage
+
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
@@ -42,26 +44,30 @@ def get_piano_rolls():
     done = False
     for file in glob.glob("type0/*.midi"):
         pm = pretty_midi.PrettyMIDI(file) #takes a midi file and converts to pretty_midi
-        instr = pm.instruments #splits into list of instruments
-        for instrument in instr:
-            name = pretty_midi.program_to_instrument_name(instrument.program)
-            if name == "Acoustic Grand Piano": #only take the piano track
-                piano_roll = instrument.get_piano_roll() #get the piano roll, which is a np.ndarray
-                #print(piano_roll.check_pianoroll())
-                pr.append(piano_roll)
-                roll = (piano_roll[:,:]>0).astype(int)
-                filename = get_filename(file)
-                pianoroll_to_midi(roll, filename)
-                #export_piano_rolls(roll, filename)
-                if len(pr) == 1:
-                    done = True
-                    break
-        if done:
-            break
+        #pm.remove_invalid_notes()
+        pianoroll = pm.get_piano_roll()
+        # instr = pm.instruments #splits into list of instruments
+        # for instrument in instr:
+        #     name = pretty_midi.program_to_instrument_name(instrument.program)
+        #     if name == "Acoustic Grand Piano": #only take the piano track
+        #         piano_roll = instrument.get_piano_roll() #get the piano roll, which is a np.ndarray
+        #         #print(piano_roll.check_pianoroll())
+        #         pr.append(piano_roll)
+        #         roll = (piano_roll[:,:]>0).astype(int)
+        #         filename = get_filename(file)
+        #         pianoroll_to_midi(piano_roll, filename)
+        #         #export_piano_rolls(roll, filename)
+        #         if len(pr) == 1:
+        #             done = True
+        #             break
+        # if done:
+        #     break
+        filename = get_filename(file)
+        piano_roll_to_pretty_midi(pianoroll, filename)
+        pr.append(pianoroll)
     return pr #list of piano rolls (np.ndarray matrices)
 
-
-def pianoroll_to_midi(piano_roll, filename, fs=100, program=0): #https://github.com/craffel/pretty-midi/blob/master/examples/reverse_pianoroll.py
+def piano_roll_to_pretty_midi(piano_roll, filename, fs=50, program=2):
     '''Convert a Piano Roll array into a PrettyMidi object
      with a single instrument.
     Parameters
@@ -110,9 +116,9 @@ def pianoroll_to_midi(piano_roll, filename, fs=100, program=0): #https://github.
             instrument.notes.append(pm_note)
             prev_velocities[note] = 0
     pm.instruments.append(instrument)
-    #print(pm)
-    pm.write("reconstructed/re-{}.midi".format(filename))
+    pm.write("re-{}.midi".format(filename))
     return pm
+
 
 
 def prepare_sequences(pr):
