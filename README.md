@@ -11,5 +11,10 @@ changing from using vae -> cvae, vae with cnn
 ### Install Dependencies
 - `python3 -m pip install imageio, torchsummary`
 
+
+Need libsndfile and audiolab for playback.
+- `brew install libsndfile`
+- `pip install scikits.audiolab`
+
 ## Useful Readings:
 - [Pianoroll Dataset Blog](https://salu133445.github.io/lakh-pianoroll-dataset/representation.html)
