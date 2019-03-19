@@ -10,3 +10,6 @@ changing from using vae -> cvae, vae with cnn
 - Example from [pytorch-vae Github](https://github.com/sksq96/pytorch-vae) 
 ### Install Dependencies
 - `python3 -m pip install imageio, torchsummary`
+
+## Useful Readings:
+- [Pianoroll Dataset Blog](https://salu133445.github.io/lakh-pianoroll-dataset/representation.html)
