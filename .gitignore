@@ -4,3 +4,6 @@ cvae/trainings/roll_imgs/
 cvae/trainings/lfw/
 cvae/rolls_imgs/
 cvae/trainings/
+cvae/models/intermediate/
+cvae/outputs/
+cvae/tmp/
